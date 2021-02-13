@@ -7,6 +7,8 @@ class Minefield(object):
         self.uncovered = [[0] * width for _ in range(height)]
         self.flagged = [[0] * width for _ in range(height)]
 
+        self.percentage = percentage
+
         self.width = width
         self.height = height
 
@@ -20,33 +22,53 @@ class Minefield(object):
         count = 0
         for y in range(self.height):
             for x in range(self.width):
-                if random.random() < percentage and count < self.total:
+                if random.random() < percentage:
                     self.bombs[y][x] = 1
                     count += 1
+
+                if count == self.total:
+                    break
+
+            else:
+                continue
+
+            break
 
         self.root = tkinter.Tk()
         self.root.title("Minesweeper")
 
         # images
-        self.bomb_image = tkinter.PhotoImage(file="assets/bomb.gif")
+        self.bomb_image = tkinter.PhotoImage(file="assets/bomb-20x20.gif")
         self.flag_image = tkinter.PhotoImage(
-            file="assets/Minesweeper Flag 20x20.gif"
+            file="assets/flag-20x20.gif"
         )
         self.flag_large_image = tkinter.PhotoImage(
-            file="assets/Minesweeper Flag 50x50.gif"
+            file="assets/flag-50x50.gif"
         )
         self.flag_large_circled_image = tkinter.PhotoImage(
-            file="assets/Minesweeper Flag (Circled) 50x50.gif"
+            file="assets/flag-circled-50x50.gif"
+        )
+        self.restart_image = tkinter.PhotoImage(
+            file="assets/restart-50x50.gif"
         )
 
+        # top bar
         self.controls = tkinter.Frame(self.root)
+
         self.flag_state = 0  # 0=uncover, 1=place flag
         self.flag_toggle = tkinter.Button(
             self.controls, image=self.flag_large_image, command=self.toggle
         )
-        self.flag_toggle.pack()
+        self.flag_toggle.pack(side="left")
+
+        self.restart_button = tkinter.Button(
+            self.controls, image=self.restart_image, command=self.restart
+        )
+        self.restart_button.pack(side="left")
+
         self.controls.pack()
 
+        # button array
         self.field = tkinter.Frame(self.root)
 
         self.grid_objects = []
@@ -69,7 +91,47 @@ class Minefield(object):
             self.grid_objects.append(row_objects)
 
         self.field.pack(side="top", expand=1)
+
         self.root.after(0, self.event_loop)
+        self.mainloop = self.root.mainloop
+
+    def restart(self):
+        self.bombs = [[0] * self.width for _ in range(self.height)]
+        self.uncovered = [[0] * self.width for _ in range(self.height)]
+        self.flagged = [[0] * self.width for _ in range(self.height)]
+
+        self.state = 0
+
+        # generate bombs
+        self.total = round(self.width * self.height * self.percentage)
+        if self.percentage > 1:
+            self.total = self.width * self.height
+
+        count = 0
+        while count < self.total:
+            for y in range(self.height):
+                for x in range(self.width):
+                    if random.random() < self.percentage:
+                        self.bombs[y][x] = 1
+                        count += 1
+
+                    if count == self.total:
+                        break
+
+                else:
+                    continue
+
+                break
+
+        self.flag_state = 0
+
+        # reset button array
+        for y in range(self.height):
+            for x in range(self.width):
+                if len(self.grid_objects[y][x]) == 3:
+                    self.grid_objects[y][x][2].grid_forget()
+                    self.grid_objects[y][x].pop()
+                    self.grid_objects[y][x][1].grid(sticky="nesw")
 
     def toggle(self):
         if self.flag_state:
@@ -82,30 +144,13 @@ class Minefield(object):
 
     def event_loop(self):
         if self.state == 0:
-            if all(map(lambda x:x[0] == x[1], zip(self.bombs, self.flagged))):
+            if all(map(lambda x: x[0] == x[1], zip(self.bombs, self.flagged))):
                 # all bombs flagged - win
                 self.state = 2
                 tkinter.messagebox.showinfo("Minesweeper", "You Win!")
 
-            states = []
-            for i, row in enumerate(self.bombs):
-                for j, value in enumerate(row):
-                    if value != self.flagged[i][j]:
-                        states.append(1)
-
-                    else:
-                        states.append(0)
-
-            if all(states):
-                # all non-bomb spaces uncovered - win
-                self.flag_state = 1
-                for y, row in enumerate(self.bombs):
-                    for x, val in enumerate(row):
-                        if val:
-                            self.uncover(x, y)
-
-                self.flag_state = 0
-                self.flag_toggle.configure(image=self.flag_large_image)
+            if all(map(lambda x: x[0] == x[1], zip(self.bombs, (list(map(lambda x: not x, row)) for row in self.uncovered)))):
+                # all non-bomb squares uncovered - win
                 self.state = 2
                 tkinter.messagebox.showinfo("Minesweeper", "You Win!")
 
@@ -138,6 +183,9 @@ class Minefield(object):
         return adj
 
     def uncover(self, x, y):
+        if self.state == 2:
+            return
+
         if self.flag_state:
             if self.flagged[y][x]:
                 self.flagged[y][x] = 0
@@ -148,7 +196,7 @@ class Minefield(object):
                 self.grid_objects[y][x][1].configure(image=self.flag_image)
 
         elif not self.flagged[y][x]:
-            self.grid_objects[y][x][1].grid_forget()
+            self.grid_objects[y][x][1].grid_remove()
             self.uncovered[y][x] = 1
             if self.bombs[y][x]:
                 # landed on bomb
@@ -156,6 +204,7 @@ class Minefield(object):
                 canvas = tkinter.Canvas(self.grid_objects[y][x][0])
                 canvas.create_image(0, 0, anchor="nw", image=self.bomb_image)
                 canvas.grid(sticky="nesw")
+                self.grid_objects[y][x].append(canvas)
 
             else:
                 adj = self.count_adj_bombs(x, y)
@@ -164,9 +213,15 @@ class Minefield(object):
                         self.grid_objects[y][x][0], text=str(adj)
                     )
                     label.grid(sticky="nesw")
+                    self.grid_objects[y][x].append(label)
 
                 else:
                     self.uncover_adjacent(x, y)
+
+                    # placeholder label
+                    label = tkinter.Label(self.grid_objects[y][x][0])
+                    label.grid(sticky="nesw")
+                    self.grid_objects[y][x].append(label)
 
     def uncover_adjacent(self, x, y):
         rows = cols = []
@@ -197,4 +252,4 @@ class Minefield(object):
 
 if __name__ == "__main__":
     example = Minefield()
-    example.root.mainloop()
+    example.mainloop()

@@ -1,4 +1,14 @@
-import random, time, tkinter.messagebox
+import random, time, tkinter.messagebox, sys, os
+
+
+def rectify_path(path):
+    if hasattr(sys, "_MEIPASS"):
+        path = os.path.join(sys._MEIPASS, path)
+
+    else:
+        path = os.path.join(os.path.dirname(__file__), path)
+
+    return path
 
 
 class Minefield(object):
@@ -19,6 +29,7 @@ class Minefield(object):
         if percentage > 1:
             self.total = width * height
 
+        random.seed(time.time())
         count = 0
         while count < self.total:
             for y in range(self.height):
@@ -39,18 +50,20 @@ class Minefield(object):
         self.root.title("Minesweeper")
 
         # images
-        self.bomb_image = tkinter.PhotoImage(file="assets/bomb-20x20.gif")
+        self.bomb_image = tkinter.PhotoImage(
+            file=rectify_path("assets/bomb-20x20.gif")
+        )
         self.flag_image = tkinter.PhotoImage(
-            file="assets/flag-20x20.gif"
+            file=rectify_path("assets/flag-20x20.gif")
         )
         self.flag_large_image = tkinter.PhotoImage(
-            file="assets/flag-50x50.gif"
+            file=rectify_path("assets/flag-50x50.gif")
         )
         self.flag_large_circled_image = tkinter.PhotoImage(
-            file="assets/flag-circled-50x50.gif"
+            file=rectify_path("assets/flag-circled-50x50.gif")
         )
         self.restart_image = tkinter.PhotoImage(
-            file="assets/restart-50x50.gif"
+            file=rectify_path("assets/restart-50x50.gif")
         )
 
         # top bar
@@ -116,6 +129,7 @@ class Minefield(object):
         if self.percentage > 1:
             self.total = self.width * self.height
 
+        random.seed(time.time())
         count = 0
         while count < self.total:
             for y in range(self.height):

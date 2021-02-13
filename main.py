@@ -1,10 +1,11 @@
-import random, time, tkinter
+import random, time, tkinter.messagebox
 
 
 class Minefield(object):
     def __init__(self, width=20, height=20, percentage=0.125):
         self.bombs = [[0] * width for _ in range(height)]
         self.uncovered = [[0] * width for _ in range(height)]
+        self.flagged = [[0] * width for _ in range(height)]
 
         self.width = width
         self.height = height
@@ -80,6 +81,34 @@ class Minefield(object):
             self.flag_toggle.configure(image=self.flag_large_circled_image)
 
     def event_loop(self):
+        if self.state == 0:
+            if all(map(lambda x:x[0] == x[1], zip(self.bombs, self.flagged))):
+                # all bombs flagged - win
+                self.state = 2
+                tkinter.messagebox.showinfo("Minesweeper", "You Win!")
+
+            states = []
+            for i, row in enumerate(self.bombs):
+                for j, value in enumerate(row):
+                    if value != self.flagged[i][j]:
+                        states.append(1)
+
+                    else:
+                        states.append(0)
+
+            if all(states):
+                # all non-bomb spaces uncovered - win
+                self.flag_state = 1
+                for y, row in enumerate(self.bombs):
+                    for x, val in enumerate(row):
+                        if val:
+                            self.uncover(x, y)
+
+                self.flag_state = 0
+                self.flag_toggle.configure(image=self.flag_large_image)
+                self.state = 2
+                tkinter.messagebox.showinfo("Minesweeper", "You Win!")
+
         if self.state == 1:
             for y, row in enumerate(self.uncovered):
                 for x, val in enumerate(row):
@@ -109,25 +138,35 @@ class Minefield(object):
         return adj
 
     def uncover(self, x, y):
-        self.grid_objects[y][x][1].grid_forget()
-        self.uncovered[y][x] = 1
-        if self.bombs[y][x]:
-            # landed on bomb
-            self.state = 1
-            canvas = tkinter.Canvas(self.grid_objects[y][x][0])
-            canvas.create_image(0, 0, anchor="nw", image=self.bomb_image)
-            canvas.grid(sticky="nesw")
-
-        else:
-            adj = self.count_adj_bombs(x, y)
-            if adj != 0:
-                label = tkinter.Label(
-                    self.grid_objects[y][x][0], text=str(adj)
-                )
-                label.grid(sticky="nesw")
+        if self.flag_state:
+            if self.flagged[y][x]:
+                self.flagged[y][x] = 0
+                self.grid_objects[y][x][1].configure(image="")
 
             else:
-                self.uncover_adjacent(x, y)
+                self.flagged[y][x] = 1
+                self.grid_objects[y][x][1].configure(image=self.flag_image)
+
+        elif not self.flagged[y][x]:
+            self.grid_objects[y][x][1].grid_forget()
+            self.uncovered[y][x] = 1
+            if self.bombs[y][x]:
+                # landed on bomb
+                self.state = 1
+                canvas = tkinter.Canvas(self.grid_objects[y][x][0])
+                canvas.create_image(0, 0, anchor="nw", image=self.bomb_image)
+                canvas.grid(sticky="nesw")
+
+            else:
+                adj = self.count_adj_bombs(x, y)
+                if adj != 0:
+                    label = tkinter.Label(
+                        self.grid_objects[y][x][0], text=str(adj)
+                    )
+                    label.grid(sticky="nesw")
+
+                else:
+                    self.uncover_adjacent(x, y)
 
     def uncover_adjacent(self, x, y):
         rows = cols = []

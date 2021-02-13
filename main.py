@@ -56,7 +56,16 @@ class Minefield(object):
         # top bar
         self.controls = tkinter.Frame(self.root)
 
+        self.flag_count_msg = tkinter.StringVar(self.root)
+        self.flag_count_msg.set(f"0/{self.total}")
+        self.flag_counter = tkinter.Label(
+            self.controls, textvariable=self.flag_count_msg,
+            font=("sans-serif", 16)
+        )
+        self.flag_counter.pack(side="left")
+
         self.flag_state = 0  # 0=uncover, 1=place flag
+        self.flag_count = 0
         self.flag_toggle = tkinter.Button(
             self.controls, image=self.flag_large_image, command=self.toggle
         )
@@ -132,7 +141,9 @@ class Minefield(object):
                     self.grid_objects[y][x].pop()
                     self.grid_objects[y][x][1].grid(sticky="nesw")
 
+        self.flag_count = 0
         self.flag_state = 0
+        self.flag_count_msg.set(f"0/{self.total}")
         self.flag_toggle.configure(image=self.flag_large_image)
         self.flagged = [[0] * self.width for _ in range(self.height)]
 
@@ -146,13 +157,16 @@ class Minefield(object):
             self.flag_toggle.configure(image=self.flag_large_circled_image)
 
     def event_loop(self):
+        self.flag_count_msg.set(f"{self.flag_count}/{self.total}")
         if self.state == 0:
             if all(map(lambda x: x[0] == x[1], zip(self.bombs, self.flagged))):
                 # all bombs flagged - win
                 self.state = 2
                 tkinter.messagebox.showinfo("Minesweeper", "You Win!")
 
-            if all(map(lambda x: x[0] == x[1], zip(self.bombs, (list(map(lambda x: not x, row)) for row in self.uncovered)))):
+            if all(map(lambda x: x[0] == x[1], zip(self.bombs, (
+                        list(map(lambda x: not x, row)) for row in self.uncovered
+                    )))):
                 # all non-bomb squares uncovered - win
                 self.state = 2
                 tkinter.messagebox.showinfo("Minesweeper", "You Win!")
@@ -191,10 +205,12 @@ class Minefield(object):
 
         if self.flag_state:
             if self.flagged[y][x]:
+                self.flag_count -= 1
                 self.flagged[y][x] = 0
                 self.grid_objects[y][x][1].configure(image="")
 
-            else:
+            elif self.flag_count < self.total:
+                self.flag_count += 1
                 self.flagged[y][x] = 1
                 self.grid_objects[y][x][1].configure(image=self.flag_image)
 

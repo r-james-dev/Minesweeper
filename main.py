@@ -50,6 +50,7 @@ class Minefield(object):
         self.root.title("Minesweeper")
 
         # images
+        self.root.iconbitmap(rectify_path("assets/bomb-128x128.ico"))
         self.bomb_image = tkinter.PhotoImage(
             file=rectify_path("assets/bomb-20x20.gif")
         )

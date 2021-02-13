@@ -20,19 +20,20 @@ class Minefield(object):
             self.total = width * height
 
         count = 0
-        for y in range(self.height):
-            for x in range(self.width):
-                if random.random() < percentage:
-                    self.bombs[y][x] = 1
-                    count += 1
+        while count < self.total:
+            for y in range(self.height):
+                for x in range(self.width):
+                    if random.random() < percentage:
+                        self.bombs[y][x] = 1
+                        count += 1
 
-                if count == self.total:
-                    break
+                    if count == self.total:
+                        break
 
-            else:
-                continue
+                else:
+                    continue
 
-            break
+                break
 
         self.root = tkinter.Tk()
         self.root.title("Minesweeper")
@@ -98,7 +99,6 @@ class Minefield(object):
     def restart(self):
         self.bombs = [[0] * self.width for _ in range(self.height)]
         self.uncovered = [[0] * self.width for _ in range(self.height)]
-        self.flagged = [[0] * self.width for _ in range(self.height)]
 
         self.state = 0
 
@@ -123,15 +123,18 @@ class Minefield(object):
 
                 break
 
-        self.flag_state = 0
-
         # reset button array
         for y in range(self.height):
             for x in range(self.width):
+                self.grid_objects[y][x][1].configure(image="")
                 if len(self.grid_objects[y][x]) == 3:
                     self.grid_objects[y][x][2].grid_forget()
                     self.grid_objects[y][x].pop()
                     self.grid_objects[y][x][1].grid(sticky="nesw")
+
+        self.flag_state = 0
+        self.flag_toggle.configure(image=self.flag_large_image)
+        self.flagged = [[0] * self.width for _ in range(self.height)]
 
     def toggle(self):
         if self.flag_state:

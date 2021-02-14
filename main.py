@@ -2,8 +2,8 @@ import random, time, tkinter.messagebox, sys, os
 
 
 def rectify_path(path):
-    if hasattr(sys, "_MEIPASS"):
-        path = os.path.join(sys._MEIPASS, path)
+    if hasattr(sys, "frozen"):
+        path = os.path.join(os.path.dirname(sys.executable), path)
 
     else:
         path = os.path.join(os.path.dirname(__file__), path)
